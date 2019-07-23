@@ -43,8 +43,7 @@ try:
             b_response = sock.recv(config.get('buffersize'))
             print(f'Server send data { b_response.decode() }')
         except ConnectionRefusedError:
-            print ('no connection to server')
-
+            print('no connection to server')
 
     print('client quited')
 except KeyboardInterrupt:
