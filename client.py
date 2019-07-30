@@ -1,5 +1,7 @@
 import yaml
+import json
 import socket
+from datetime import datetime
 from argparse import ArgumentParser
 
 
@@ -25,19 +27,25 @@ if args.config:
 
 host, port = config.get('host'), config.get('port')
 
+
 data = ''
 
 print('type "quit" to quit')
 
 try:
     while data != 'quit':
+        action = input('Enter action')
         data = input('Enter data: ')
+        request = {'action': action,
+                   'time': datetime.now().timestamp(),
+                   'data': data}
+        request_str = json.dumps(request)
         try:
             sock = socket.socket()
             sock.connect((host, port))
             print('Connected to server')
 
-            sock.send(data.encode())
+            sock.send(request_str.encode())
             print(f'Client send data { data }')
 
             b_response = sock.recv(config.get('buffersize'))
