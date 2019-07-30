@@ -65,8 +65,6 @@ try:
         str_response = json.dumps(response)
         client.send(str_response.encode())
 
-
-
         client.close()
 
 except KeyboardInterrupt:

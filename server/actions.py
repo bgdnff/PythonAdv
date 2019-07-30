@@ -18,6 +18,8 @@ def get_server_actions():
         actions,
         []
     )
+
+
 def resolve(action_name, actions=None):
     action_list = actions or get_server_actions()
     action_mapping = {
