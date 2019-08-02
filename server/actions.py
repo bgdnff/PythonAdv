@@ -21,9 +21,11 @@ def get_server_actions():
 
 
 def resolve(action_name, actions=None):
+    print(f'ACTIONS:{action_name}')
     action_list = actions or get_server_actions()
     action_mapping = {
         action.get('action'): action.get('controller')
         for action in action_list
     }
+    print(f'returns:{action_mapping.get(action_name)}')
     return action_mapping.get(action_name)
