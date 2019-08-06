@@ -59,7 +59,8 @@ try:
                 controller = resolve(actions_name)
                 if controller:
                     logging.info(f'client send valid message {request}')
-                    response = make_response(request.get('action'), 200, request.get('data'))
+                    response = controller(request)
+                    #response = make_response(request.get('action'), 200, request.get('data'))
                 else:
                     logging.error(f'controller with action {actions_name} not found')
                     response = make_response(actions_name, 404, 'Action not found')
