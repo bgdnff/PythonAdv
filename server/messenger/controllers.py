@@ -1,6 +1,8 @@
 from protocol import make_response
+from decorators import logged
 
 
+@logged
 def send_message(request):
     data = request.get('data')
     action = request.get('action')
