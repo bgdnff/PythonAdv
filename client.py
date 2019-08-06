@@ -65,7 +65,7 @@ try:
             sock.send(bytes_request)
             print(f'Client send data { data }')
         elif args.mode == READ_MODE:
-            print('read_mode started')
+            print('listening...')
             response = sock.recv(config.get('buffersize'))
             bytes_response = zlib.decompress(response)
             print(f'Server send data { bytes_response.decode() }')
