@@ -1,12 +1,10 @@
 import yaml
-import json
+import select
 import socket
 import logging
 from argparse import ArgumentParser
 
-from actions import resolve
-from server.protocol import validate_request, make_response
-# подключить относительные пути к модулям не получилось :(
+from handlers import handle_default_request
 
 parser = ArgumentParser()
 
@@ -37,46 +35,48 @@ logging.basicConfig(
     ]
 )
 
+requests = []
+connections = []
+
 host, port = config.get('host'), config.get('port')
 
 try:
     sock = socket.socket()
     sock.bind((host, port))
     sock.listen(5)
-
+    sock.setblocking(False)
+    sock.settimeout(0)
     logging.info(f'Server was started with {host}:{port}')
 
     while True:
-        client, address = sock.accept()
-        logging.info(f'Client was detected { address[0] }:{ address[1] }')
-
-        b_request = client.recv(config.get('buffersize'))
-
-        request = json.loads(b_request.decode())
+        # хм... а requests и connections не надо чистить?
+        # при достаточно долгой работе сервероа там может набиться
+        # куча давно отключившихся клиентов. или я что-то не так понимаю?
         try:
-            if validate_request(request):
-                actions_name = request.get('action')
-                controller = resolve(actions_name)
-                if controller:
-                    logging.info(f'client send valid message {request}')
-                    response = controller(request)
-                    #response = make_response(request.get('action'), 200, request.get('data'))
-                else:
-                    logging.error(f'controller with action {actions_name} not found')
-                    response = make_response(actions_name, 404, 'Action not found')
+            client, address = sock.accept()
+            logging.info(f'Client was detected { address[0] }:{ address[1] }')
+            connections.append(client)
+        except:
+            pass
 
-            else:
-                logging.error(f'Client send invalid message {request}')
-                response = make_response(request.get('action'), 404, 'Wrong request')
+        if len(connections) > 0:
+            rlist, wlist, xlist = select.select(
+                connections, connections, connections, 0
+            )
 
-        except Exception as err:
-            logging.critical(f'Internal server error: {err}')
-            response = make_response(request.get('action'), 500, 'Internal server error')
+            for read_client in rlist:
+                try:  # на случай если клиент внезапно отвалился
+                    bytes_request = read_client.recv(config.get('buffersize'))
+                    requests.append(bytes_request)
+                except:
+                    pass
 
-        str_response = json.dumps(response)
-        client.send(str_response.encode())
+            if requests:
+                bytes_request = requests.pop()
+                bytes_response = handle_default_request(bytes_request)
 
-        client.close()
+                for write_client in wlist:
+                    write_client.send(bytes_response)
 
 except KeyboardInterrupt:
     print('Server shutdown.')
