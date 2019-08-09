@@ -10,10 +10,10 @@ from handlers import handle_default_request
 
 def read(sock, connections, requests, buffersize):
     try:
-        print(sock)
         bytes_request = sock.recv(buffersize)
     except ConnectionResetError as err:
-        connections.remove(sock)
+        if sock in connections:
+            connections.remove(sock)
     except BlockingIOError:
         # происходят коллизии с записью в тот же сокет, просто подождем
         pass
@@ -25,8 +25,8 @@ def write(sock, connection, response):
     try:
         sock.send(response)
     except Exception:
-        connections.remove(sock)
-
+        if sock in connections:
+            connections.remove(sock)
 
 parser = ArgumentParser()
 
