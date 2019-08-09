@@ -3,8 +3,30 @@ import select
 import socket
 import logging
 from argparse import ArgumentParser
+import threading
 
 from handlers import handle_default_request
+
+
+def read(sock, connections, requests, buffersize):
+    try:
+        print(sock)
+        bytes_request = sock.recv(buffersize)
+    except ConnectionResetError as err:
+        connections.remove(sock)
+    except BlockingIOError:
+        # происходят коллизии с записью в тот же сокет, просто подождем
+        pass
+    else:
+        requests.append(bytes_request)
+
+
+def write(sock, connection, response):
+    try:
+        sock.send(response)
+    except Exception:
+        connections.remove(sock)
+
 
 parser = ArgumentParser()
 
@@ -49,9 +71,6 @@ try:
     logging.info(f'Server was started with {host}:{port}')
 
     while True:
-        # хм... а requests и connections не надо чистить?
-        # при достаточно долгой работе сервероа там может набиться
-        # куча давно отключившихся клиентов. или я что-то не так понимаю?
         try:
             client, address = sock.accept()
             logging.info(f'Client was detected { address[0] }:{ address[1] }')
@@ -65,18 +84,21 @@ try:
             )
 
             for read_client in rlist:
-                try:  # на случай если клиент внезапно отвалился
-                    bytes_request = read_client.recv(config.get('buffersize'))
-                    requests.append(bytes_request)
-                except:
-                    pass
+                read_thread = threading.Thread(
+                    target=read, args=(read_client, connections, requests,
+                                       config.get('buffersize'))
+                )
+                read_thread.start()
 
             if requests:
                 bytes_request = requests.pop()
                 bytes_response = handle_default_request(bytes_request)
 
                 for write_client in wlist:
-                    write_client.send(bytes_response)
+                    write_thread = threading.Thread(
+                        target=write, args=(write_client, connections, bytes_response)
+                    )
+                    write_thread.start()
 
 except KeyboardInterrupt:
     print('Server shutdown.')
