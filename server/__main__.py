@@ -11,7 +11,7 @@ from handlers import handle_default_request
 def read(sock, connections, requests, buffersize):
     try:
         bytes_request = sock.recv(buffersize)
-    except ConnectionResetError as err:
+    except ConnectionResetError:
         if sock in connections:
             connections.remove(sock)
     except BlockingIOError:
@@ -27,6 +27,7 @@ def write(sock, connection, response):
     except Exception:
         if sock in connections:
             connections.remove(sock)
+
 
 parser = ArgumentParser()
 
